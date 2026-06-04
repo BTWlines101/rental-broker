@@ -1,0 +1,438 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+  <title>Rentis — 중개인 열람</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+  <style>
+    * { margin:0; padding:0; box-sizing:border-box; }
+    body { font-family:'Plus Jakarta Sans',-apple-system,sans-serif; background:#f4f6fb; }
+
+    /* ── 로그인 화면 ── */
+    #login-screen {
+      position:fixed; inset:0; z-index:50;
+      background:linear-gradient(150deg,#2563eb 0%,#6d28d9 35%,#8b5cf6 70%,#a78bfa 100%);
+      display:flex; align-items:center; justify-content:center; overflow:hidden;
+    }
+    .dt-login-center { display:flex; flex-direction:column; align-items:center; width:100%; padding:0 28px; }
+    .dt-login-title  { font-size:38px; font-weight:300; color:#fff; text-align:center; letter-spacing:-0.02em; line-height:1; margin:0 0 8px; }
+    .dt-login-subtitle { font-size:11px; font-weight:400; color:rgba(255,255,255,0.5); letter-spacing:0.07em; text-transform:uppercase; margin:0 0 36px; text-align:center; }
+    .dt-login-input-wrap { position:relative; width:200px; margin:0 0 10px; }
+    .dt-login-input {
+      width:200px; height:44px; padding:0 46px 0 18px; font-size:14px; color:#0f172a;
+      background:#fff; border:none; border-radius:999px; outline:none;
+      box-shadow:0 6px 20px rgba(15,23,42,0.12),inset 0 1px 2px rgba(15,23,42,0.04);
+    }
+    .dt-login-input::placeholder { color:#9ca3af; }
+    .dt-login-eye {
+      position:absolute; right:8px; top:50%; transform:translateY(-50%);
+      width:28px; height:28px; border-radius:50%;
+      background:linear-gradient(135deg,#6d28d9,#7c3aed);
+      display:flex; align-items:center; justify-content:center;
+      color:#fff; font-size:13px; border:none; cursor:pointer;
+    }
+    .dt-login-cta {
+      display:flex; align-items:center; justify-content:center;
+      width:200px; height:44px; font-size:14px; font-weight:600; color:#fff;
+      background:linear-gradient(135deg,#6d28d9,#7c3aed); border:none; border-radius:999px;
+      box-shadow:0 6px 18px rgba(109,40,217,0.45); cursor:pointer;
+      transition:transform 0.12s,box-shadow 0.12s;
+    }
+    .dt-login-cta:active { transform:scale(0.97); box-shadow:0 3px 10px rgba(109,40,217,0.35); }
+    .dt-login-err { font-size:12px; color:rgba(255,200,200,0.9); margin-top:10px; min-height:18px; text-align:center; }
+
+    /* ── 메인 화면 ── */
+    #main-screen {
+      display:none; position:fixed; inset:0;
+      flex-direction:column; background:#f4f6fb;
+      max-width:480px; margin:0 auto;
+      height:100vh; height:100dvh; overflow:hidden;
+    }
+    #main-screen.active { display:flex; }
+
+    /* ── 상세 화면 ── */
+    #detail-screen {
+      display:none; position:fixed; inset:0;
+      flex-direction:column; background:#f4f6fb;
+      max-width:480px; margin:0 auto;
+      height:100vh; height:100dvh; overflow:hidden;
+    }
+    #detail-screen.active { display:flex; }
+
+    /* ── BrokerView 공용 스타일 ── */
+    .bv-chip {
+      padding:5px 12px; font-size:12px; font-weight:500;
+      border-radius:999px; border:1.5px solid #d1d5db;
+      background:#fff; color:#6b7280; cursor:pointer; white-space:nowrap;
+    }
+    .bv-chip.bv-active { color:#fff; border-color:transparent; }
+    .bv-card { background:#fff; border-radius:14px; box-shadow:0 2px 8px rgba(15,23,42,0.06); }
+    .bv-section-label { font-size:11px; font-weight:600; color:#94a3b8; letter-spacing:0.06em; text-transform:uppercase; margin-bottom:8px; }
+    .bv-bldg-circle { width:32px; height:32px; border-radius:50%; display:flex; align-items:center; justify-content:center; color:#fff; font-size:13px; font-weight:700; flex-shrink:0; }
+    .bv-avail-badge  { background:#fef9c3; color:#a16207; border-radius:999px; font-size:11px; font-weight:600; padding:2px 8px; }
+    .bv-vacant-badge { background:#fef2f2; color:#dc2626; border-radius:999px; font-size:11px; font-weight:600; padding:2px 8px; }
+    .bv-detail-btn   { padding:5px 12px; font-size:12px; font-weight:500; color:#6b7280; background:#f7f8fa; border:1px solid #e4e7ed; border-radius:8px; cursor:pointer; white-space:nowrap; }
+    .bv-amount-num   { font-size:16px; font-weight:700; }
+    .bv-amount-unit  { font-size:11px; color:#94a3b8; margin-left:2px; }
+    .bv-icon-circle  { width:24px; height:24px; border-radius:50%; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+    .bv-tenant-call  { width:36px; height:36px; border-radius:50%; background:linear-gradient(135deg,#3b82f6,#2563eb); border:none; display:flex; align-items:center; justify-content:center; cursor:pointer; text-decoration:none; }
+    .bv-tenant-copy  { width:36px; height:36px; border-radius:50%; background:#f1f5f9; border:1px solid #e2e8f0; display:flex; align-items:center; justify-content:center; cursor:pointer; }
+
+    /* ── 토스트 ── */
+    #toast {
+      position:fixed; bottom:24px; left:50%; transform:translateX(-50%) translateY(60px);
+      background:#1a1d23; color:#fff; padding:9px 18px; border-radius:999px;
+      font-size:13px; font-weight:500; opacity:0; transition:all 0.28s;
+      pointer-events:none; white-space:nowrap; z-index:999;
+    }
+    #toast.show { opacity:1; transform:translateX(-50%) translateY(0); }
+  </style>
+</head>
+<body>
+
+<!-- ══ 로그인 화면 ══ -->
+<div id="login-screen">
+  <div class="dt-login-center">
+    <h1 class="dt-login-title">Rentis</h1>
+    <p class="dt-login-subtitle">Property Operating System</p>
+    <div class="dt-login-input-wrap">
+      <input type="password" id="pw-input" class="dt-login-input"
+             placeholder="비밀번호 입력" inputmode="numeric" autocomplete="current-password"
+             onkeydown="if(event.key==='Enter')App.login()">
+      <button class="dt-login-eye" id="pw-eye-btn" onclick="App.toggleEye()">
+        <i class="bi bi-eye"></i>
+      </button>
+    </div>
+    <button onclick="App.login()" class="dt-login-cta">입장하기</button>
+    <div id="login-err" class="dt-login-err"></div>
+  </div>
+</div>
+
+<!-- ══ 메인(목록) 화면 ══ -->
+<div id="main-screen">
+  <!-- 헤더 -->
+  <div style="background:#fff;padding:12px 14px 10px;flex-shrink:0;border-bottom:0.5px solid #eaecf0;">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:9px;">
+      <span style="font-size:16px;font-weight:600;color:#1a1d23;">중개인 열람</span>
+      <div style="display:flex;gap:6px;">
+        <button onclick="App.reload()" style="width:34px;height:34px;border-radius:10px;border:1px solid #e4e7ed;background:#f7f8fa;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:17px;color:#6b7280;">
+          <i class="bi bi-arrow-clockwise"></i>
+        </button>
+        <button onclick="App.logout()" style="width:34px;height:34px;border-radius:10px;border:1px solid #e4e7ed;background:#f7f8fa;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:17px;color:#6b7280;">
+          <i class="bi bi-box-arrow-right"></i>
+        </button>
+      </div>
+    </div>
+    <div id="chip-bar" style="display:flex;gap:5px;overflow-x:auto;-webkit-overflow-scrolling:touch;padding-bottom:2px;"></div>
+  </div>
+  <!-- 카운트 -->
+  <div id="count-bar" style="flex-shrink:0;padding:6px 14px 0;font-size:12px;color:#9ca3af;"></div>
+  <!-- 카드 목록 -->
+  <div id="card-list" style="flex:1;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:10px 12px;"></div>
+</div>
+
+<!-- ══ 상세 화면 ══ -->
+<div id="detail-screen">
+  <div id="detail-content" style="display:flex;flex-direction:column;height:100%;overflow:hidden;"></div>
+</div>
+
+<!-- 토스트 -->
+<div id="toast"></div>
+
+<script>
+// ── 설정 ──────────────────────────────────────────────────────────────
+const GAS_URL  = 'https://script.google.com/macros/s/AKfycbwBwKZCVZpcxvOoANMxYpVQPPLHKynNY5hTGy2CXUQ6NzHCi74wdjO1wRdF4yCApbAM/exec';
+const BLDG_C   = { '남현':'#3b82f6', '풍전':'#ef4444', '우남':'#16a34a' };
+const FLAG_YES = 'O';
+
+let STATE = { pwd:'', rows:[], bldFilter:'전체', sort:'exit' };
+
+// ── 유틸 ──────────────────────────────────────────────────────────────
+function fmtD(d) {
+  return d ? String(d).slice(2,10).replace(/-/g,'.') : '—';
+}
+function fmtAbbr(v) {
+  const n = Number(v);
+  if (!n) return null;
+  if (n >= 10000) return (n/10000).toFixed(1).replace(/\.0$/,'') + '억';
+  if (n >= 1000)  return (n/1000).toFixed(1).replace(/\.0$/,'')  + '천';
+  return n + '만';
+}
+function esc(v) {
+  return String(v||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2200);
+}
+
+// ── API ───────────────────────────────────────────────────────────────
+async function gasGet(action, pwd) {
+  const res = await fetch(
+    GAS_URL + '?action=' + action + '&pwd=' + encodeURIComponent(pwd),
+    { redirect: 'follow' }
+  );
+  return res.json();
+}
+
+// ── 앱 ────────────────────────────────────────────────────────────────
+const App = {
+  async login() {
+    const pwd = document.getElementById('pw-input').value.trim();
+    if (!pwd) return;
+    const errEl = document.getElementById('login-err');
+    errEl.textContent = '';
+    document.getElementById('pw-input').disabled = true;
+    document.querySelector('.dt-login-cta').textContent = '확인 중…';
+    try {
+      const r = await gasGet('broker_auth', pwd);
+      if (!r.ok) throw new Error(r.error || '인증 실패');
+      STATE.pwd = pwd;
+      document.getElementById('login-screen').style.display = 'none';
+      document.getElementById('main-screen').classList.add('active');
+      List.load();
+    } catch(e) {
+      errEl.textContent = e.message;
+    } finally {
+      document.getElementById('pw-input').disabled = false;
+      document.querySelector('.dt-login-cta').textContent = '입장하기';
+    }
+  },
+  reload() { List.load(); },
+  logout() {
+    STATE.pwd = ''; STATE.rows = [];
+    document.getElementById('main-screen').classList.remove('active');
+    document.getElementById('detail-screen').classList.remove('active');
+    document.getElementById('login-screen').style.display = '';
+    document.getElementById('pw-input').value = '';
+    document.getElementById('login-err').textContent = '';
+  },
+  toggleEye() {
+    const i = document.getElementById('pw-input');
+    const b = document.getElementById('pw-eye-btn');
+    i.type = i.type === 'password' ? 'text' : 'password';
+    b.innerHTML = i.type === 'password'
+      ? '<i class="bi bi-eye"></i>'
+      : '<i class="bi bi-eye-slash"></i>';
+  }
+};
+
+// ── 목록 ──────────────────────────────────────────────────────────────
+const List = {
+  async load() {
+    document.getElementById('card-list').innerHTML =
+      '<div style="padding:40px;text-align:center;color:#94a3b8;">로딩 중…</div>';
+    try {
+      const r = await gasGet('broker_units', STATE.pwd);
+      if (!r.ok) throw new Error(r.error || '데이터 오류');
+      STATE.rows = r.data || [];
+      this.render();
+    } catch(e) {
+      document.getElementById('card-list').innerHTML =
+        '<div style="padding:40px;text-align:center;color:#ef4444;">' + esc(e.message) + '</div>';
+    }
+  },
+  filtered() {
+    let rows = STATE.rows;
+    if (STATE.bldFilter !== '전체') rows = rows.filter(r => r.building === STATE.bldFilter);
+    if (STATE.sort === 'exit') {
+      rows = rows.slice().sort((a,b) => {
+        const da = (a._exitDate && a._exitDate!=='vacant') ? a._exitDate : '9999-99-99';
+        const db = (b._exitDate && b._exitDate!=='vacant') ? b._exitDate : '9999-99-99';
+        return da < db ? -1 : da > db ? 1 : 0;
+      });
+    } else {
+      rows = rows.slice().sort((a,b) => {
+        const da = String(a.avail||'9999-99-99');
+        const db = String(b.avail||'9999-99-99');
+        return da < db ? -1 : da > db ? 1 : 0;
+      });
+    }
+    return rows;
+  },
+  chip(type, val) {
+    if (type === 'bldg') STATE.bldFilter = val;
+    else STATE.sort = val;
+    this.render();
+  },
+  render() {
+    const rows = this.filtered();
+
+    // 칩바
+    const chipBar = ['전체','남현','풍전','우남'].map(v => {
+      const on = STATE.bldFilter === v;
+      const c  = v==='전체' ? '#1a1d23' : (BLDG_C[v]||'#64748b');
+      const st = on ? 'background:'+c+';border-color:'+c+';' : '';
+      return '<button onclick="List.chip(\'bldg\',\''+v+'\')" class="bv-chip'+(on?' bv-active':'')+'" style="'+st+'">'+v+'</button>';
+    }).concat([['exit','퇴실순'],['avail','입주일순']].map(([v,l]) => {
+      const on = STATE.sort === v;
+      const st = on ? 'background:#7c3aed;border-color:#7c3aed;' : '';
+      return '<button onclick="List.chip(\'sort\',\''+v+'\')" class="bv-chip'+(on?' bv-active':'')+'" style="'+st+'">'+l+'</button>';
+    })).join('');
+    document.getElementById('chip-bar').innerHTML = chipBar;
+
+    // 카운트
+    const vacantCnt = rows.filter(r => r._exitDate==='vacant').length;
+    document.getElementById('count-bar').innerHTML = '총 '+rows.length+'세대'
+      + (vacantCnt ? ' · <span style="color:#ef4444;font-weight:600;">공실 '+vacantCnt+'</span>' : '');
+
+    // 카드
+    const cell = (label, val) =>
+      '<div style="display:flex;flex-direction:column;gap:3px;">'
+      + '<span style="font-size:10px;color:#94a3b8;">'+label+'</span>'
+      + '<span style="font-size:12px;font-weight:600;color:#374151;">'+val+'</span>'
+      + '</div>';
+
+    const cardList = rows.length === 0
+      ? '<div style="padding:50px 20px;text-align:center;color:#94a3b8;font-size:0.85rem;">표시할 매물이 없습니다</div>'
+      : rows.map((r, idx) => {
+          const isVacant = r._exitDate === 'vacant';
+          const bldgC = BLDG_C[r.building]||'#64748b';
+          const mthVal = (Number(r.monthly)>0) ? r.monthly : (Number(r.rent||0)+Number(r.maint||0));
+          const badge  = isVacant
+            ? '<span class="bv-vacant-badge">공실</span>'
+            : (r.avail ? '<span class="bv-avail-badge">'+fmtD(String(r.avail).slice(0,10))+'</span>' : '');
+          const depFmt  = Number(r.dep)  ? fmtAbbr(r.dep)  : '<span style="color:#c4c9d4;font-size:11px;">미입력</span>';
+          const mthFmt  = mthVal         ? fmtAbbr(mthVal)  : '<span style="color:#c4c9d4;font-size:11px;">미입력</span>';
+          const exitFmt = isVacant ? '<span style="color:#dc2626;font-weight:600;">공실</span>' : fmtD(r._exitDate);
+          const availFmt = r.avail ? fmtD(String(r.avail).slice(0,10)) : '<span style="color:#c4c9d4;font-size:11px;">—</span>';
+          const hr=parseInt(bldgC.slice(1,3),16), hg=parseInt(bldgC.slice(3,5),16), hb=parseInt(bldgC.slice(5,7),16);
+          const tint = 'box-shadow:0 3px 10px rgba('+hr+','+hg+','+hb+',0.35);';
+          return '<div class="bv-card" style="padding:11px 13px;margin-bottom:8px;">'
+            + '<div style="display:flex;align-items:center;gap:10px;">'
+            + '<div class="bv-bldg-circle" style="background:'+bldgC+';'+tint+'">'+String(r.building||'').slice(0,1)+'</div>'
+            + '<div style="flex:1;min-width:0;display:flex;align-items:center;gap:5px;">'
+            + '<span style="font-size:15px;font-weight:600;color:#1a1d23;">'+r.unit+'</span>'
+            + badge
+            + '</div>'
+            + '<button onclick="Detail.open('+idx+')" class="bv-detail-btn">상세정보</button>'
+            + '</div>'
+            + '<div style="border-top:1px solid #f0f2f6;margin:9px 0;"></div>'
+            + '<div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:4px;">'
+            + cell('보증금', depFmt)
+            + cell('월+관합계', mthFmt)
+            + cell('퇴실일', exitFmt)
+            + cell('입주가능일', availFmt)
+            + '</div>'
+            + '</div>';
+        }).join('');
+
+    document.getElementById('card-list').innerHTML = cardList;
+  }
+};
+
+// ── 상세 ──────────────────────────────────────────────────────────────
+const Detail = {
+  open(idx) {
+    const r = List.filtered()[idx];
+    if (!r) return;
+    document.getElementById('detail-content').innerHTML = this.html(r);
+    document.getElementById('detail-screen').classList.add('active');
+    history.pushState({ bv:'detail' }, '');
+  },
+  close() {
+    document.getElementById('detail-screen').classList.remove('active');
+  },
+  html(r) {
+    const mthVal   = (Number(r.monthly)>0) ? r.monthly : (Number(r.rent||0)+Number(r.maint||0));
+    const isVacant = r._exitDate === 'vacant';
+    const bldgC    = BLDG_C[r.building]||'#64748b';
+    const phone    = String(r._tenantPhone||'');
+    const notifOn  = String(r.notif) === FLAG_YES;
+
+    const badge = '<div style="width:28px;height:28px;border-radius:50%;background:'+bldgC
+      + ';display:flex;align-items:center;justify-content:center;color:#fff;font-size:12px;font-weight:700;">'
+      + String(r.building||'').slice(0,1)+'</div>';
+
+    const amtCard = (ic, iconBg, iconC, label, val, numC) => {
+      const n = Number(val);
+      const numStr = n ? (n*10000).toLocaleString() : null;
+      const valHtml = !n
+        ? '<span style="font-size:13px;color:#c4c9d4;">해당없음</span>'
+        : '<span class="bv-amount-num" style="color:'+numC+';">'+numStr+'</span><span class="bv-amount-unit">원</span>';
+      return '<div class="bv-card" style="padding:10px 12px;">'
+        + '<div style="display:flex;align-items:center;gap:6px;margin-bottom:6px;">'
+        + '<div class="bv-icon-circle" style="background:'+iconBg+';"><i class="bi '+ic+'" style="font-size:11px;color:'+iconC+';"></i></div>'
+        + '<span style="font-size:11px;color:#94a3b8;">'+label+'</span>'
+        + '</div><div style="display:flex;align-items:baseline;">'+valHtml+'</div></div>';
+    };
+    const schedCard = (ic, iconBg, iconC, label, val, vacantCell) => {
+      const valHtml = vacantCell
+        ? '<span class="bv-vacant-badge" style="font-size:12px;">공실</span>'
+        : '<span style="font-size:14px;font-weight:500;color:#374151;">'+(val||'미정')+'</span>';
+      return '<div class="bv-card" style="padding:10px 12px;">'
+        + '<div style="display:flex;align-items:center;gap:6px;margin-bottom:6px;">'
+        + '<div class="bv-icon-circle" style="background:'+iconBg+';"><i class="bi '+ic+'" style="font-size:11px;color:'+iconC+';"></i></div>'
+        + '<span style="font-size:11px;color:#94a3b8;">'+label+'</span>'
+        + '</div>'+valHtml+'</div>';
+    };
+
+    const exitLabel  = isVacant ? null : fmtD(r._exitDate||'');
+    const availLabel = r.avail  ? fmtD(String(r.avail).slice(0,10)) : null;
+
+    let tenantSection;
+    if (notifOn) {
+      const escName = esc(r._tenantName||'미입력');
+      const actionBtns = phone
+        ? '<a href="tel:'+phone+'" class="bv-tenant-call"><i class="bi bi-telephone" style="font-size:15px;color:#fff;"></i></a>'
+          + '<button onclick="navigator.clipboard.writeText(\''+phone+'\').then(()=>showToast(\'번호 복사됨\'))" class="bv-tenant-copy"><i class="bi bi-clipboard" style="font-size:15px;color:#6b7280;"></i></button>'
+        : '';
+      if (isVacant) {
+        tenantSection = '<div style="padding:4px 0;"><span class="bv-vacant-badge" style="font-size:12px;">공실</span></div>';
+      } else {
+        tenantSection = '<div style="display:flex;align-items:center;gap:10px;">'
+          + '<div style="width:32px;height:32px;border-radius:50%;background:#eff6ff;display:flex;align-items:center;justify-content:center;flex-shrink:0;"><i class="bi bi-person" style="font-size:17px;color:#3b82f6;"></i></div>'
+          + '<div style="flex:1;min-width:0;">'
+          + '<div style="font-size:13.5px;font-weight:500;color:#1a1d23;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'+escName+'</div>'
+          + (phone ? '<div style="font-size:12px;color:#6b7280;">'+phone+'</div>' : '')
+          + '</div>'
+          + (phone ? '<div style="display:flex;gap:6px;flex-shrink:0;">'+actionBtns+'</div>' : '')
+          + '</div>';
+      }
+    } else {
+      tenantSection = '<div style="display:flex;align-items:center;gap:6px;padding:6px 0;">'
+        + '<i class="bi bi-lock" style="font-size:15px;color:#94a3b8;"></i>'
+        + '<span style="font-size:13px;color:#94a3b8;">임대인이 임차인에게 통보 후 열람 가능합니다</span>'
+        + '</div>';
+    }
+
+    return '<div style="background:#fff;border-bottom:0.5px solid #eaecf0;padding:12px 16px;display:flex;align-items:center;gap:10px;flex-shrink:0;">'
+      + '<button onclick="Detail.close()" style="background:none;border:none;cursor:pointer;color:#6b7280;padding:2px 8px 2px 0;display:flex;align-items:center;gap:4px;font-size:13px;">'
+      + '<i class="bi bi-arrow-left" style="font-size:15px;"></i> 닫기</button>'
+      + badge
+      + '<span style="font-size:18px;font-weight:500;color:#1a1d23;">'+r.unit+'</span>'
+      + '</div>'
+      + '<div style="flex:1;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:12px;background:#f4f6fb;display:flex;flex-direction:column;gap:10px;">'
+      + '<div><div class="bv-section-label">금액 정보</div>'
+      + '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">'
+      + amtCard('bi-coin',              '#eff6ff','#3b82f6','보증금',    r.dep,     '#1d4ed8')
+      + amtCard('bi-credit-card',       '#f5f3ff','#8b5cf6','월+관합계', mthVal,    '#7c3aed')
+      + amtCard('bi-house',             '#f0fdf4','#16a34a','월세',      r.rent,    '#15803d')
+      + amtCard('bi-wrench-adjustable', '#fff7ed','#ea580c','관리비',    r.maint,   '#c2410c')
+      + amtCard('bi-bank',              '#fdf4ff','#a855f7','최대보증금',r.maxD,    '#7c3aed')
+      + amtCard('bi-car-front',         '#f9fafb','#9ca3af','주차비',    r.parking, '#9ca3af')
+      + '</div></div>'
+      + '<div><div class="bv-section-label">입주 일정</div>'
+      + '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">'
+      + schedCard('bi-calendar-x',     '#fef2f2','#ef4444','퇴실일',    exitLabel, isVacant)
+      + schedCard('bi-calendar-check', '#f0fdf4','#16a34a','입주가능일',availLabel,false)
+      + '</div></div>'
+      + (r.memo
+          ? '<div class="bv-card" style="padding:10px 12px;"><div class="bv-section-label">메모</div>'
+            + '<div style="font-size:13px;color:#374151;line-height:1.6;white-space:pre-wrap;word-break:break-word;">'+esc(r.memo)+'</div></div>'
+          : '')
+      + '<div class="bv-card" style="padding:10px 12px;"><div class="bv-section-label">임차인 정보</div>'
+      + tenantSection + '</div>'
+      + '</div>';
+  }
+};
+
+// 뒤로가기 → 상세 닫기
+window.addEventListener('popstate', () => Detail.close());
+</script>
+</body>
+</html>
