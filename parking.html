@@ -275,11 +275,21 @@ function gasGet(action, params) {
 
 // ── 카드 렌더 헬퍼 ──────────────────────────────────────────────────
 function renderCard(idx, car_no, phone) {
+  const phoneRaw = String(phone||'').replace(/\D/g,'');
+  const phoneFmt = esc(fmtPhone(phone));
+  const carFmt   = esc(car_no || '—');
   return '<div class="pk-card">'
     + '<div class="pk-num-badge">' + (idx+1) + '</div>'
-    + '<div style="flex:1;min-width:0;">'
-    + '<div class="pk-car-no">' + esc(car_no || '—') + '</div>'
-    + '<div class="pk-phone">' + esc(fmtPhone(phone)) + '</div>'
+    + '<div style="flex:1;min-width:0;display:flex;align-items:center;gap:8px;overflow:hidden;">'
+    + '<span class="pk-car-no" style="white-space:nowrap;">' + carFmt + '</span>'
+    + '<span style="color:#d1d5db;font-size:12px;">|</span>'
+    + '<span class="pk-phone" style="white-space:nowrap;">' + phoneFmt + '</span>'
+    + '</div>'
+    + '<div style="display:flex;gap:6px;flex-shrink:0;">'
+    + (phoneRaw ? '<a href="tel:' + phoneRaw + '" style="width:34px;height:34px;border-radius:50%;background:linear-gradient(135deg,#3b82f6,#2563eb);display:flex;align-items:center;justify-content:center;text-decoration:none;">'
+      + '<i class="bi bi-telephone-fill" style="color:#fff;font-size:14px;"></i></a>' : '')
+    + (phoneRaw ? '<a href="sms:' + phoneRaw + '" style="width:34px;height:34px;border-radius:50%;background:#f1f5f9;border:1px solid #e2e8f0;display:flex;align-items:center;justify-content:center;text-decoration:none;">'
+      + '<i class="bi bi-chat-fill" style="color:#64748b;font-size:13px;"></i></a>' : '')
     + '</div>'
     + '</div>';
 }
