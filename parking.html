@@ -122,6 +122,56 @@
     }
     .bldg-chip.active { color:#fff; border-color:transparent; }
 
+    /* ── 차량 팝업 ── */
+    #car-popup-overlay {
+      display:none; position:fixed; inset:0; z-index:80;
+      background:rgba(15,23,42,0.45); backdrop-filter:blur(3px);
+      align-items:flex-end; justify-content:center;
+    }
+    #car-popup-overlay.active { display:flex; }
+    .car-popup {
+      background:#fff; border-radius:24px 24px 0 0;
+      width:100%; max-width:480px; padding:28px 20px 36px;
+      box-shadow:0 -8px 40px rgba(15,23,42,0.18);
+      animation:slideUp 0.22s ease;
+    }
+    @keyframes slideUp {
+      from { transform:translateY(60px); opacity:0; }
+      to   { transform:translateY(0);    opacity:1; }
+    }
+    .car-popup-handle {
+      width:36px; height:4px; background:#e2e8f0; border-radius:999px;
+      margin:0 auto 22px;
+    }
+    .car-popup-car-row {
+      display:flex; align-items:center; justify-content:center; gap:8px; margin-bottom:10px;
+    }
+    .car-popup-car-icon { font-size:26px; line-height:1; }
+    .car-popup-car {
+      font-size:22px; font-weight:800; color:#1a1d23; letter-spacing:0.06em;
+    }
+    .car-popup-phone {
+      text-align:center; font-size:28px; font-weight:700;
+      color:#1a1d23; margin:0 0 22px;
+    }
+    .car-popup-btns {
+      display:flex; gap:8px; margin-bottom:12px;
+    }
+    .car-popup-btn {
+      flex:1; height:48px; border-radius:14px; border:none; font-size:13px; font-weight:600;
+      cursor:pointer; display:flex; align-items:center; justify-content:center; gap:5px;
+    }
+    .car-popup-btn-copy  { background:#f1f5f9; color:#374151; }
+    .car-popup-btn-sms   { background:#f0fdf4; color:#16a34a; }
+    .car-popup-btn-call  {
+      background:linear-gradient(135deg,#22c55e,#16a34a);
+      color:#fff; font-size:13px; font-weight:700;
+    }
+    .car-popup-btn-close {
+      width:100%; height:52px; border-radius:14px; border:none;
+      background:#f1f5f9; color:#374151; font-size:16px; font-weight:600; cursor:pointer;
+    }
+
     /* ── 토스트 ── */
     #toast {
       position:fixed; bottom:24px; left:50%; transform:translateX(-50%) translateY(60px);
@@ -225,6 +275,30 @@
   <div id="master-card-list" style="flex:1;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:10px 12px;display:flex;flex-direction:column;gap:8px;"></div>
 </div>
 
+<!-- ══ 차량 팝업 ══ -->
+<div id="car-popup-overlay" onclick="CarPopup.closeIfBg(event)">
+  <div class="car-popup">
+    <div class="car-popup-handle"></div>
+    <div class="car-popup-car-row">
+      <span class="car-popup-car-icon">🚗</span>
+      <span id="popup-car-no" class="car-popup-car"></span>
+    </div>
+    <div id="popup-phone" class="car-popup-phone"></div>
+    <div class="car-popup-btns">
+      <button class="car-popup-btn car-popup-btn-copy" onclick="CarPopup.copy()">
+        <i class="bi bi-clipboard"></i> 복사
+      </button>
+      <button class="car-popup-btn car-popup-btn-sms" onclick="CarPopup.sms()">
+        <i class="bi bi-chat"></i> 문자
+      </button>
+      <button class="car-popup-btn car-popup-btn-call" onclick="CarPopup.call()">
+        <i class="bi bi-telephone-fill"></i> 전화걸기
+      </button>
+    </div>
+    <button class="car-popup-btn-close" onclick="CarPopup.close()">닫기</button>
+  </div>
+</div>
+
 <!-- 토스트 -->
 <div id="toast"></div>
 
@@ -275,24 +349,46 @@ function gasGet(action, params) {
 
 // ── 카드 렌더 헬퍼 ──────────────────────────────────────────────────
 function renderCard(idx, car_no, phone) {
-  const phoneRaw = String(phone||'').replace(/\D/g,'');
+  const carFmt  = esc(car_no || '—');
   const phoneFmt = esc(fmtPhone(phone));
-  const carFmt   = esc(car_no || '—');
-  return '<div class="pk-card">'
+  const safecar  = car_no.replace(/'/g,"\\'");
+  const safephone = phone.replace(/'/g,"\\'");
+  return '<div class="pk-card" style="cursor:pointer;" onclick="CarPopup.open(\'' + safecar + '\',\'' + safephone + '\')">'
     + '<div class="pk-num-badge">' + (idx+1) + '</div>'
     + '<div style="flex:1;min-width:0;display:flex;align-items:center;gap:8px;overflow:hidden;">'
     + '<span class="pk-car-no" style="white-space:nowrap;">' + carFmt + '</span>'
     + '<span style="color:#d1d5db;font-size:12px;">|</span>'
     + '<span class="pk-phone" style="white-space:nowrap;">' + phoneFmt + '</span>'
     + '</div>'
-    + '<div style="display:flex;gap:6px;flex-shrink:0;">'
-    + (phoneRaw ? '<a href="tel:' + phoneRaw + '" style="width:34px;height:34px;border-radius:50%;background:linear-gradient(135deg,#3b82f6,#2563eb);display:flex;align-items:center;justify-content:center;text-decoration:none;">'
-      + '<i class="bi bi-telephone-fill" style="color:#fff;font-size:14px;"></i></a>' : '')
-    + (phoneRaw ? '<a href="sms:' + phoneRaw + '" style="width:34px;height:34px;border-radius:50%;background:#f1f5f9;border:1px solid #e2e8f0;display:flex;align-items:center;justify-content:center;text-decoration:none;">'
-      + '<i class="bi bi-chat-fill" style="color:#64748b;font-size:13px;"></i></a>' : '')
+    + '<div style="width:34px;height:34px;border-radius:50%;background:linear-gradient(135deg,#3b82f6,#2563eb);display:flex;align-items:center;justify-content:center;flex-shrink:0;">'
+    + '<i class="bi bi-telephone-fill" style="color:#fff;font-size:14px;"></i>'
     + '</div>'
     + '</div>';
 }
+
+// ── 차량 팝업 ────────────────────────────────────────────────────────
+const CarPopup = {
+  _phone: '',
+  open(car_no, phone) {
+    this._phone = String(phone||'').replace(/\D/g,'');
+    document.getElementById('popup-car-no').textContent = car_no || '—';
+    document.getElementById('popup-phone').textContent  = fmtPhone(phone);
+    document.getElementById('car-popup-overlay').classList.add('active');
+  },
+  close() {
+    document.getElementById('car-popup-overlay').classList.remove('active');
+  },
+  closeIfBg(e) {
+    if (e.target === document.getElementById('car-popup-overlay')) this.close();
+  },
+  copy() {
+    const txt = document.getElementById('popup-phone').textContent;
+    navigator.clipboard ? navigator.clipboard.writeText(txt).then(() => showToast('전화번호 복사됨'))
+      : (function(){ const t=document.createElement('textarea'); t.value=txt; document.body.appendChild(t); t.select(); document.execCommand('copy'); document.body.removeChild(t); showToast('전화번호 복사됨'); })();
+  },
+  sms()  { if (this._phone) location.href = 'sms:' + this._phone; },
+  call() { if (this._phone) location.href = 'tel:' + this._phone; }
+};
 function renderEmpty(msg) {
   return '<div style="padding:50px 20px;text-align:center;color:#94a3b8;font-size:0.85rem;">' + esc(msg) + '</div>';
 }
