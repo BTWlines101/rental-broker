@@ -1,0 +1,437 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+  <title>Rentis — 주차 세대 확인</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+  <style>
+    * { margin:0; padding:0; box-sizing:border-box; }
+    body { font-family:'Plus Jakarta Sans',-apple-system,sans-serif; background:#f4f6fb; }
+
+    /* ── 로그인 화면 ── */
+    #login-screen {
+      position:fixed; inset:0; z-index:50;
+      background:linear-gradient(150deg,#2563eb 0%,#6d28d9 35%,#8b5cf6 70%,#a78bfa 100%);
+      display:flex; align-items:center; justify-content:center; overflow:hidden;
+    }
+    .dt-login-center { display:flex; flex-direction:column; align-items:center; width:100%; padding:0 28px; }
+    .dt-login-title  { font-size:38px; font-weight:300; color:#fff; text-align:center; letter-spacing:-0.02em; line-height:1; margin:0 0 8px; }
+    .dt-login-subtitle { font-size:11px; font-weight:400; color:rgba(255,255,255,0.5); letter-spacing:0.07em; text-transform:uppercase; margin:0 0 32px; text-align:center; }
+    .dt-login-input-wrap { position:relative; width:200px; margin:0 0 10px; }
+    .dt-login-input {
+      width:200px; height:44px; padding:0 16px; font-size:14px; color:#0f172a;
+      background:#fff; border:none; border-radius:999px; outline:none;
+      box-shadow:0 6px 20px rgba(15,23,42,0.12),inset 0 1px 2px rgba(15,23,42,0.04);
+    }
+    .dt-login-input::placeholder { color:#9ca3af; }
+    .dt-login-cta {
+      display:flex; align-items:center; justify-content:center;
+      width:200px; height:44px; font-size:14px; font-weight:600; color:#fff;
+      background:linear-gradient(135deg,#6d28d9,#7c3aed); border:none; border-radius:999px;
+      box-shadow:0 6px 18px rgba(109,40,217,0.45); cursor:pointer;
+      transition:transform 0.12s,box-shadow 0.12s; margin-top:4px;
+    }
+    .dt-login-cta:active { transform:scale(0.97); box-shadow:0 3px 10px rgba(109,40,217,0.35); }
+    .dt-login-cta:disabled { opacity:0.6; cursor:default; transform:none; }
+    .dt-login-err { font-size:12px; color:rgba(255,200,200,0.9); margin-top:10px; min-height:18px; text-align:center; }
+    .dt-login-master-link {
+      margin-top:20px; font-size:11px; color:rgba(255,255,255,0.35);
+      cursor:pointer; text-decoration:underline; text-underline-offset:3px;
+    }
+    .dt-login-master-link:hover { color:rgba(255,255,255,0.6); }
+    .dt-login-label {
+      font-size:11px; color:rgba(255,255,255,0.55); font-weight:500;
+      letter-spacing:0.04em; margin-bottom:5px; width:200px; text-align:left;
+    }
+
+    /* ── 주차 현황 화면 (세대용) ── */
+    #main-screen {
+      display:none; position:fixed; inset:0;
+      flex-direction:column; background:#f4f6fb;
+      max-width:480px; margin:0 auto;
+      height:100vh; height:100dvh; overflow:hidden;
+    }
+    #main-screen.active { display:flex; }
+
+    /* ── MASTER 미리보기 화면 ── */
+    #master-screen {
+      display:none; position:fixed; inset:0;
+      flex-direction:column; background:#f4f6fb;
+      max-width:480px; margin:0 auto;
+      height:100vh; height:100dvh; overflow:hidden;
+    }
+    #master-screen.active { display:flex; }
+
+    /* ── MASTER 로그인 오버레이 ── */
+    #master-login-overlay {
+      display:none; position:fixed; inset:0; z-index:60;
+      background:rgba(15,23,42,0.55); backdrop-filter:blur(4px);
+      align-items:center; justify-content:center;
+    }
+    #master-login-overlay.active { display:flex; }
+    .master-modal {
+      background:#fff; border-radius:20px; padding:28px 24px;
+      width:280px; box-shadow:0 20px 60px rgba(15,23,42,0.25);
+    }
+    .master-modal-title { font-size:15px; font-weight:700; color:#1a1d23; margin-bottom:6px; }
+    .master-modal-sub   { font-size:12px; color:#94a3b8; margin-bottom:18px; }
+    .master-modal input {
+      width:100%; height:44px; padding:0 14px; font-size:14px; color:#0f172a;
+      border:1.5px solid #e2e8f0; border-radius:12px; outline:none; margin-bottom:10px;
+    }
+    .master-modal input:focus { border-color:#7c3aed; }
+    .master-modal-btn {
+      width:100%; height:44px; background:linear-gradient(135deg,#6d28d9,#7c3aed);
+      color:#fff; font-size:14px; font-weight:600; border:none; border-radius:12px;
+      cursor:pointer; margin-bottom:8px;
+    }
+    .master-modal-btn:disabled { opacity:0.6; cursor:default; }
+    .master-modal-cancel { width:100%; height:36px; background:none; border:none; font-size:13px; color:#94a3b8; cursor:pointer; }
+    .master-modal-err { font-size:12px; color:#ef4444; min-height:16px; margin-bottom:6px; }
+
+    /* ── 공통 카드 스타일 ── */
+    .pk-card {
+      background:#fff; border-radius:14px;
+      box-shadow:0 2px 8px rgba(15,23,42,0.06);
+      padding:14px 16px;
+      display:flex; align-items:center; gap:12px;
+    }
+    .pk-car-no {
+      font-size:15px; font-weight:700; color:#1a1d23; letter-spacing:0.04em;
+    }
+    .pk-phone {
+      font-size:13px; color:#64748b; margin-top:2px;
+    }
+    .pk-num-badge {
+      min-width:28px; height:28px; border-radius:50%;
+      background:#f1f5f9; color:#64748b;
+      font-size:11px; font-weight:600;
+      display:flex; align-items:center; justify-content:center;
+      flex-shrink:0;
+    }
+
+    /* ── 건물 칩 ── */
+    .bldg-chip {
+      padding:6px 14px; font-size:12px; font-weight:500;
+      border-radius:999px; border:1.5px solid #d1d5db;
+      background:#fff; color:#6b7280; cursor:pointer; white-space:nowrap;
+      transition:all 0.15s;
+    }
+    .bldg-chip.active { color:#fff; border-color:transparent; }
+
+    /* ── 토스트 ── */
+    #toast {
+      position:fixed; bottom:24px; left:50%; transform:translateX(-50%) translateY(60px);
+      background:#1a1d23; color:#fff; padding:9px 18px; border-radius:999px;
+      font-size:13px; font-weight:500; opacity:0; transition:all 0.28s;
+      pointer-events:none; white-space:nowrap; z-index:999;
+    }
+    #toast.show { opacity:1; transform:translateX(-50%) translateY(0); }
+  </style>
+</head>
+<body>
+
+<!-- ══ 로그인 화면 ══ -->
+<div id="login-screen">
+  <div class="dt-login-center">
+    <h1 class="dt-login-title">Rentis</h1>
+    <p class="dt-login-subtitle">Parking Status</p>
+
+    <div class="dt-login-label">차량번호 4자리</div>
+    <div class="dt-login-input-wrap">
+      <input type="tel" id="car-input" class="dt-login-input"
+             placeholder="예) 3455" maxlength="4" inputmode="numeric"
+             onkeydown="if(event.key==='Enter')document.getElementById('phone-input').focus()">
+    </div>
+
+    <div class="dt-login-label" style="margin-top:4px;">전화번호 뒷자리 4자리</div>
+    <div class="dt-login-input-wrap">
+      <input type="tel" id="phone-input" class="dt-login-input"
+             placeholder="예) 1234" maxlength="4" inputmode="numeric"
+             onkeydown="if(event.key==='Enter')App.login()">
+    </div>
+
+    <button id="login-btn" onclick="App.login()" class="dt-login-cta">확인하기</button>
+    <div id="login-err" class="dt-login-err"></div>
+
+    <span class="dt-login-master-link" onclick="MasterOverlay.open()">관리자 로그인</span>
+  </div>
+</div>
+
+<!-- ══ MASTER 로그인 오버레이 ══ -->
+<div id="master-login-overlay">
+  <div class="master-modal">
+    <div class="master-modal-title">관리자 확인</div>
+    <div class="master-modal-sub">마스터 비밀번호를 입력하세요</div>
+    <input type="password" id="master-pwd-input" placeholder="비밀번호 입력"
+           onkeydown="if(event.key==='Enter')MasterOverlay.submit()">
+    <div id="master-err" class="master-modal-err"></div>
+    <button id="master-submit-btn" class="master-modal-btn" onclick="MasterOverlay.submit()">입장하기</button>
+    <button class="master-modal-cancel" onclick="MasterOverlay.close()">취소</button>
+  </div>
+</div>
+
+<!-- ══ 주차 현황 화면 (세대용) ══ -->
+<div id="main-screen">
+  <!-- 헤더 -->
+  <div style="background:#fff;padding:12px 14px 10px;flex-shrink:0;border-bottom:0.5px solid #eaecf0;">
+    <div style="display:flex;align-items:center;justify-content:space-between;">
+      <div>
+        <div style="font-size:16px;font-weight:700;color:#1a1d23;">주차 현황</div>
+        <div id="main-bldg-label" style="font-size:12px;color:#94a3b8;margin-top:1px;"></div>
+      </div>
+      <div style="display:flex;gap:6px;">
+        <button onclick="App.reload()" style="width:34px;height:34px;border-radius:10px;border:1px solid #e4e7ed;background:#f7f8fa;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:17px;color:#6b7280;">
+          <i class="bi bi-arrow-clockwise"></i>
+        </button>
+        <button onclick="App.logout()" style="width:34px;height:34px;border-radius:10px;border:1px solid #e4e7ed;background:#f7f8fa;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:17px;color:#6b7280;">
+          <i class="bi bi-box-arrow-right"></i>
+        </button>
+      </div>
+    </div>
+  </div>
+  <!-- 안내 -->
+  <div style="flex-shrink:0;padding:10px 14px 0;">
+    <div style="background:#eff6ff;border-radius:10px;padding:10px 14px;font-size:12px;color:#3b82f6;line-height:1.5;">
+      <i class="bi bi-info-circle" style="margin-right:4px;"></i>현재 등록된 주차 세대 목록입니다. 등록되지 않은 차량은 불법주차입니다.
+    </div>
+  </div>
+  <!-- 카드 목록 -->
+  <div id="main-card-list" style="flex:1;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:10px 12px;display:flex;flex-direction:column;gap:8px;"></div>
+</div>
+
+<!-- ══ MASTER 미리보기 화면 ══ -->
+<div id="master-screen">
+  <!-- 헤더 -->
+  <div style="background:#fff;padding:12px 14px 10px;flex-shrink:0;border-bottom:0.5px solid #eaecf0;">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+      <div>
+        <div style="font-size:16px;font-weight:700;color:#1a1d23;">주차 현황 미리보기</div>
+        <div style="font-size:11px;color:#f59e0b;margin-top:1px;font-weight:500;">관리자 모드</div>
+      </div>
+      <button onclick="Master.logout()" style="width:34px;height:34px;border-radius:10px;border:1px solid #e4e7ed;background:#f7f8fa;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:17px;color:#6b7280;">
+        <i class="bi bi-box-arrow-right"></i>
+      </button>
+    </div>
+    <!-- 건물 선택 칩 -->
+    <div id="master-chip-bar" style="display:flex;gap:5px;overflow-x:auto;-webkit-overflow-scrolling:touch;padding-bottom:2px;"></div>
+  </div>
+  <!-- 카운트 -->
+  <div id="master-count-bar" style="flex-shrink:0;padding:8px 14px 0;font-size:12px;color:#9ca3af;"></div>
+  <!-- 카드 목록 -->
+  <div id="master-card-list" style="flex:1;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:10px 12px;display:flex;flex-direction:column;gap:8px;"></div>
+</div>
+
+<!-- 토스트 -->
+<div id="toast"></div>
+
+<script>
+// ── 설정 ──────────────────────────────────────────────────────────────
+const GAS_URL = 'https://script.google.com/macros/s/AKfycbxJ5JZ51ej79S4WFTDz1WqEhlFThZp6RJ9u-2RstdiebK6uhCC1VoGEQw1S-vhDOzp1/exec';
+const BLDG_COLOR = { '남현':'#3b82f6','풍전':'#ef4444','우남':'#16a34a','페를라':'#f59e0b','두영':'#7c3aed' };
+const BLDG_ORDER = ['남현','풍전','우남','페를라','두영'];
+
+let STATE = { carNo4:'', phone4:'', parkBldg:'', rows:[], masterData:{}, masterBldg:'' };
+
+// ── 유틸 ──────────────────────────────────────────────────────────────
+function esc(v) {
+  return String(v||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+function fmtPhone(v) {
+  const d = String(v||'').replace(/\D/g,'');
+  if (d.length === 11) return d.slice(0,3)+'-'+d.slice(3,7)+'-'+d.slice(7);
+  if (d.length === 10) return d.slice(0,3)+'-'+d.slice(3,6)+'-'+d.slice(6);
+  return v;
+}
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2200);
+}
+
+// ── JSONP API ────────────────────────────────────────────────────────
+function gasGet(action, params) {
+  return new Promise((resolve, reject) => {
+    const cbName = '__pk_' + Date.now();
+    const script = document.createElement('script');
+    const timer = setTimeout(() => {
+      cleanup(); reject(new Error('요청 시간이 초과됐습니다.'));
+    }, 15000);
+    function cleanup() {
+      clearTimeout(timer);
+      delete window[cbName];
+      if (script.parentNode) script.parentNode.removeChild(script);
+    }
+    window[cbName] = function(data) { cleanup(); resolve(data); };
+    script.onerror  = function()    { cleanup(); reject(new Error('네트워크 오류가 발생했습니다.')); };
+    const qs = Object.entries(params).map(([k,v]) => k+'='+encodeURIComponent(v)).join('&');
+    script.src = GAS_URL + '?action=' + action + '&' + qs + '&callback=' + cbName;
+    document.head.appendChild(script);
+  });
+}
+
+// ── 카드 렌더 헬퍼 ──────────────────────────────────────────────────
+function renderCard(idx, car_no, phone) {
+  return '<div class="pk-card">'
+    + '<div class="pk-num-badge">' + (idx+1) + '</div>'
+    + '<div style="flex:1;min-width:0;">'
+    + '<div class="pk-car-no">' + esc(car_no || '—') + '</div>'
+    + '<div class="pk-phone">' + esc(fmtPhone(phone)) + '</div>'
+    + '</div>'
+    + '</div>';
+}
+function renderEmpty(msg) {
+  return '<div style="padding:50px 20px;text-align:center;color:#94a3b8;font-size:0.85rem;">' + esc(msg) + '</div>';
+}
+
+// ── 세대 로그인 ──────────────────────────────────────────────────────
+const App = {
+  async login() {
+    const carNo4 = document.getElementById('car-input').value.replace(/\D/g,'').trim();
+    const phone4 = document.getElementById('phone-input').value.replace(/\D/g,'').trim();
+    const errEl  = document.getElementById('login-err');
+    const btn    = document.getElementById('login-btn');
+    errEl.textContent = '';
+
+    if (!carNo4 || carNo4.length < 4) { errEl.textContent = '차량번호 4자리를 입력해주세요.'; return; }
+    if (!phone4 || phone4.length < 4) { errEl.textContent = '전화번호 뒷자리 4자리를 입력해주세요.'; return; }
+
+    btn.disabled = true;
+    btn.textContent = '확인 중…';
+    document.getElementById('car-input').disabled   = true;
+    document.getElementById('phone-input').disabled = true;
+
+    try {
+      const r = await gasGet('park_login', { carNo4, phone4 });
+      if (!r.ok) throw new Error(r.error || '인증 실패');
+      STATE.carNo4   = carNo4;
+      STATE.phone4   = phone4;
+      STATE.parkBldg = r.parkBldg || '';
+      STATE.rows     = r.rows || [];
+
+      document.getElementById('login-screen').style.display = 'none';
+      document.getElementById('main-screen').classList.add('active');
+      document.getElementById('main-bldg-label').textContent = STATE.parkBldg + ' 주차장';
+      MainView.render();
+    } catch(e) {
+      errEl.textContent = e.message;
+    } finally {
+      btn.disabled  = false;
+      btn.textContent = '확인하기';
+      document.getElementById('car-input').disabled   = false;
+      document.getElementById('phone-input').disabled = false;
+    }
+  },
+  async reload() {
+    const list = document.getElementById('main-card-list');
+    list.innerHTML = '<div style="padding:40px;text-align:center;color:#94a3b8;">로딩 중…</div>';
+    try {
+      const r = await gasGet('park_login', { carNo4: STATE.carNo4, phone4: STATE.phone4 });
+      if (!r.ok) throw new Error(r.error || '데이터 오류');
+      STATE.rows = r.rows || [];
+      MainView.render();
+    } catch(e) {
+      list.innerHTML = '<div style="padding:40px;text-align:center;color:#ef4444;">' + esc(e.message) + '</div>';
+    }
+  },
+  logout() {
+    STATE.carNo4 = ''; STATE.phone4 = ''; STATE.parkBldg = ''; STATE.rows = [];
+    document.getElementById('main-screen').classList.remove('active');
+    document.getElementById('login-screen').style.display = '';
+    document.getElementById('car-input').value   = '';
+    document.getElementById('phone-input').value = '';
+    document.getElementById('login-err').textContent = '';
+  }
+};
+
+// ── 세대 현황 렌더 ──────────────────────────────────────────────────
+const MainView = {
+  render() {
+    const rows = STATE.rows;
+    const list = document.getElementById('main-card-list');
+    if (rows.length === 0) {
+      list.innerHTML = renderEmpty('등록된 주차 세대가 없습니다.');
+      return;
+    }
+    list.innerHTML = rows.map((r, i) => renderCard(i, r.car_no, r.phone)).join('');
+  }
+};
+
+// ── MASTER 로그인 오버레이 ──────────────────────────────────────────
+const MasterOverlay = {
+  open() {
+    document.getElementById('master-login-overlay').classList.add('active');
+    document.getElementById('master-pwd-input').value = '';
+    document.getElementById('master-err').textContent = '';
+    setTimeout(() => document.getElementById('master-pwd-input').focus(), 100);
+  },
+  close() {
+    document.getElementById('master-login-overlay').classList.remove('active');
+  },
+  async submit() {
+    const pwd  = document.getElementById('master-pwd-input').value.trim();
+    const errEl = document.getElementById('master-err');
+    const btn   = document.getElementById('master-submit-btn');
+    errEl.textContent = '';
+    if (!pwd) return;
+
+    btn.disabled = true;
+    btn.textContent = '확인 중…';
+    try {
+      const r = await gasGet('park_master', { masterPwd: pwd });
+      if (!r.ok) throw new Error(r.error || '인증 실패');
+      STATE.masterData = r.byBuilding || {};
+      STATE.masterBldg = BLDG_ORDER.find(b => STATE.masterData[b]) || Object.keys(STATE.masterData)[0] || '';
+
+      MasterOverlay.close();
+      document.getElementById('login-screen').style.display = 'none';
+      document.getElementById('master-screen').classList.add('active');
+      Master.renderChips();
+      Master.renderList();
+    } catch(e) {
+      errEl.textContent = e.message;
+    } finally {
+      btn.disabled = false;
+      btn.textContent = '입장하기';
+    }
+  }
+};
+
+// ── MASTER 미리보기 ──────────────────────────────────────────────────
+const Master = {
+  selectBldg(b) {
+    STATE.masterBldg = b;
+    this.renderChips();
+    this.renderList();
+  },
+  renderChips() {
+    const bldgs = BLDG_ORDER.filter(b => STATE.masterData[b]);
+    document.getElementById('master-chip-bar').innerHTML = bldgs.map(b => {
+      const on = STATE.masterBldg === b;
+      const c  = BLDG_COLOR[b] || '#64748b';
+      const st = on ? 'background:'+c+';border-color:'+c+';' : '';
+      return '<button class="bldg-chip'+(on?' active':'')+'" style="'+st+'" onclick="Master.selectBldg(\''+b+'\')">'+b+'</button>';
+    }).join('');
+  },
+  renderList() {
+    const rows = STATE.masterData[STATE.masterBldg] || [];
+    const color = BLDG_COLOR[STATE.masterBldg] || '#64748b';
+    document.getElementById('master-count-bar').innerHTML =
+      '<span style="color:'+color+';font-weight:600;">'+esc(STATE.masterBldg)+'</span> · 총 '+rows.length+'대';
+    document.getElementById('master-card-list').innerHTML =
+      rows.length === 0
+        ? renderEmpty('등록된 주차 세대가 없습니다.')
+        : rows.map((r,i) => renderCard(i, r.car_no, r.phone)).join('');
+  },
+  logout() {
+    STATE.masterData = {}; STATE.masterBldg = '';
+    document.getElementById('master-screen').classList.remove('active');
+    document.getElementById('login-screen').style.display = '';
+  }
+};
+</script>
+</body>
+</html>
