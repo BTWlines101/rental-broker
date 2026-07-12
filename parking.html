@@ -125,51 +125,52 @@
     /* ── 차량 팝업 ── */
     #car-popup-overlay {
       display:none; position:fixed; inset:0; z-index:80;
-      background:rgba(15,23,42,0.45); backdrop-filter:blur(3px);
-      align-items:flex-end; justify-content:center;
+      background:rgba(10,10,20,0.6); backdrop-filter:blur(4px);
+      align-items:center; justify-content:center; padding:0 24px;
     }
     #car-popup-overlay.active { display:flex; }
     .car-popup {
-      background:#fff; border-radius:24px 24px 0 0;
-      width:100%; max-width:480px; padding:28px 20px 36px;
-      box-shadow:0 -8px 40px rgba(15,23,42,0.18);
-      animation:slideUp 0.22s ease;
+      background:#fff; border-radius:14px;
+      width:100%; max-width:260px;
+      border:0.5px solid #e2e8f0;
+      box-shadow:0 8px 32px rgba(15,23,42,0.14);
+      overflow:hidden;
+      animation:popIn 0.16s ease;
     }
-    @keyframes slideUp {
-      from { transform:translateY(60px); opacity:0; }
-      to   { transform:translateY(0);    opacity:1; }
+    @keyframes popIn {
+      from { transform:scale(0.95); opacity:0; }
+      to   { transform:scale(1);    opacity:1; }
     }
-    .car-popup-handle {
-      width:36px; height:4px; background:#e2e8f0; border-radius:999px;
-      margin:0 auto 22px;
+    .car-popup-body {
+      padding:20px 18px 16px; text-align:center;
     }
     .car-popup-car-row {
-      display:flex; align-items:center; justify-content:center; gap:8px; margin-bottom:10px;
+      display:flex; align-items:center; justify-content:center; gap:6px; margin-bottom:10px;
     }
-    .car-popup-car-icon { font-size:26px; line-height:1; }
+    .car-popup-car-icon { font-size:17px; line-height:1; }
     .car-popup-car {
-      font-size:22px; font-weight:800; color:#1a1d23; letter-spacing:0.06em;
+      font-size:14px; font-weight:500; color:#64748b; letter-spacing:0.06em;
     }
     .car-popup-phone {
-      text-align:center; font-size:28px; font-weight:700;
-      color:#1a1d23; margin:0 0 22px;
+      font-size:22px; font-weight:500; color:#1a1d23; letter-spacing:0.01em;
     }
+    .car-popup-divider { height:0.5px; background:#e9ecf0; }
     .car-popup-btns {
-      display:flex; gap:8px; margin-bottom:12px;
+      padding:12px 14px; display:grid; grid-template-columns:1fr 1fr; gap:6px;
     }
     .car-popup-btn {
-      flex:1; height:48px; border-radius:14px; border:none; font-size:13px; font-weight:600;
-      cursor:pointer; display:flex; align-items:center; justify-content:center; gap:5px;
+      height:38px; border-radius:8px; font-size:12px; font-weight:500;
+      cursor:pointer; display:flex; align-items:center; justify-content:center; gap:4px;
+      border:0.5px solid #e2e8f0; background:#f8fafc; color:#64748b;
     }
-    .car-popup-btn-copy  { background:#f1f5f9; color:#374151; }
-    .car-popup-btn-sms   { background:#f0fdf4; color:#16a34a; }
-    .car-popup-btn-call  {
-      background:linear-gradient(135deg,#22c55e,#16a34a);
-      color:#fff; font-size:13px; font-weight:700;
+    .car-popup-btn-call {
+      grid-column:1/-1; height:38px; border-radius:8px;
+      border:0.5px solid #bfdbfe; background:#eff6ff;
+      color:#2563eb; font-size:12px; font-weight:500;
     }
     .car-popup-btn-close {
-      width:100%; height:52px; border-radius:14px; border:none;
-      background:#f1f5f9; color:#374151; font-size:16px; font-weight:600; cursor:pointer;
+      width:100%; height:40px; border:none; border-top:0.5px solid #e9ecf0;
+      background:none; color:#94a3b8; font-size:13px; font-weight:400; cursor:pointer;
     }
 
     /* ── 토스트 ── */
@@ -278,21 +279,23 @@
 <!-- ══ 차량 팝업 ══ -->
 <div id="car-popup-overlay" onclick="CarPopup.closeIfBg(event)">
   <div class="car-popup">
-    <div class="car-popup-handle"></div>
-    <div class="car-popup-car-row">
-      <span class="car-popup-car-icon">🚗</span>
-      <span id="popup-car-no" class="car-popup-car"></span>
+    <div class="car-popup-body">
+      <div class="car-popup-car-row">
+        <span class="car-popup-car-icon">🚗</span>
+        <span id="popup-car-no" class="car-popup-car"></span>
+      </div>
+      <div id="popup-phone" class="car-popup-phone"></div>
     </div>
-    <div id="popup-phone" class="car-popup-phone"></div>
+    <div class="car-popup-divider"></div>
     <div class="car-popup-btns">
-      <button class="car-popup-btn car-popup-btn-copy" onclick="CarPopup.copy()">
-        <i class="bi bi-clipboard"></i> 복사
+      <button class="car-popup-btn" onclick="CarPopup.copy()">
+        <i class="bi bi-clipboard" style="font-size:12px;"></i> 복사
       </button>
-      <button class="car-popup-btn car-popup-btn-sms" onclick="CarPopup.sms()">
-        <i class="bi bi-chat"></i> 문자
+      <button class="car-popup-btn" onclick="CarPopup.sms()">
+        <i class="bi bi-chat" style="font-size:12px;"></i> 문자
       </button>
       <button class="car-popup-btn car-popup-btn-call" onclick="CarPopup.call()">
-        <i class="bi bi-telephone-fill"></i> 전화걸기
+        <i class="bi bi-telephone-fill" style="font-size:12px;"></i> 전화걸기
       </button>
     </div>
     <button class="car-popup-btn-close" onclick="CarPopup.close()">닫기</button>
